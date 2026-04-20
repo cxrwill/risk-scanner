@@ -17,10 +17,18 @@ def get_whois_info(domain):
     try:
         w = whois.whois(domain)
         creation_date = w.creation_date
+        
+        # 如果返回了多个日期，取第一个
         if isinstance(creation_date, list):
             creation_date = creation_date[0]
             
-        days_active = (datetime.now() - creation_date).days if creation_date else "Unknown"
+        # --- 修复重点：处理时区冲突 ---
+        if creation_date:
+            # 去除时区信息，使其可以与 datetime.now() 相减
+            creation_date_naive = creation_date.replace(tzinfo=None)
+            days_active = (datetime.now() - creation_date_naive).days
+        else:
+            days_active = "Unknown"
         
         return {
             "registrar": w.registrar,
@@ -30,7 +38,7 @@ def get_whois_info(domain):
         }
     except Exception as e:
         return {"error": f"Whois查询失败: {str(e)}"}
-
+        
 def scrape_website(url):
     """抓取网站基础信息与文本"""
     headers = {
